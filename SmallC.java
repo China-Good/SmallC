@@ -5,9 +5,19 @@ import java.io.*;
  */
 public class SmallC {
 
+
     private static final int al = 10;//标识符的最大长度
     private static final int nmax = 14;//数字的最大位数
     private static final int norw = 8;//保留字数量
+
+    private enum symbol {
+        nul,         ident,     number,     plus,      minus,
+        times,       slash,     oddsym,     eql,       neq,
+        lss,         leq,       gtr,        geq,       lparen,
+        rparen,      comma,     semicolon,  period,    becomes,
+        endsym,      ifsym,     thensym,    elsesym,   repeatsym,
+        untilsym,    readsym,   writesym
+    }
 
     private static String url;//输入文件路径
     private static int cc;//当前读取字符在当前行中的位置
@@ -16,6 +26,10 @@ public class SmallC {
     private static String id;//当前的identifier
     private static String[] word = new String[norw];//保留字数组
     private static String a;//存放临时符号
+    private static symbol  sym;//存放现在的符号
+    private static symbol[] wsym = new symbol[norw];//保留字符号数组
+    private static symbol[] ssym = new symbol[256];//单字符符号数组
+    private static int num;//存放当前读取的数字
 
     private static String line;//当前读取行的内容
     private static FileReader fr;
@@ -55,6 +69,36 @@ public class SmallC {
         word[6] = new String("until");
         word[7] = new String("write");
 
+        wsym[0] = symbol.elsesym;
+        wsym[1] = symbol.endsym;
+        wsym[2] = symbol.ifsym;
+        wsym[3] = symbol.readsym;
+        wsym[4] = symbol.repeatsym;
+        wsym[5] = symbol.thensym;
+        wsym[6] = symbol.untilsym;
+        wsym[7] = symbol.writesym;
+
+        for(int i = 0; i < 256; i ++)
+            ssym[i] = symbol.nul;
+
+        ssym['+'] = symbol.plus;
+        ssym['-'] = symbol.minus;
+        ssym['*'] = symbol.times;
+        ssym['/'] = symbol.slash;
+        ssym['('] = symbol.lparen;
+        ssym[')'] = symbol.rparen;
+        ssym['='] = symbol.eql;
+        ssym[','] = symbol.comma;
+        ssym['.'] = symbol.period;
+        ssym['#'] = symbol.neq;
+        ssym[';'] = symbol.semicolon;
+
+
+
+
+    }
+    public static void error(){
+        System.out.println("error");
     }
 
     public static void getsym() throws IOException{
@@ -84,6 +128,89 @@ public class SmallC {
                     i = k + 1;
 
             }while(i <= j);
+            if (i-1 > j) // 当前的单词是保留字
+            {
+                sym = wsym[k];
+            }
+            else // 当前的单词是标识符
+            {
+                sym = symbol.ident;
+            }
+
+        }
+        else{//当前符号不是保留字或标识符
+            //数字
+            if(ch >= '0' && ch <= '9'){
+                num = 0;
+                sym = symbol.number;
+                k = 0;
+                do{
+                    num = 10 * num + ch - '0';
+                    k ++;
+                    getch();
+                }while(ch >= '0' && ch <= '9');
+
+                k-= 1;//获取读进来数字的长度
+                if(k > nmax)
+                    error();
+            }
+            else
+            {
+                if (ch == ':')		/* 检测赋值符号 */
+                {
+                    getch();
+                    if (ch == '=')
+                    {
+                        sym = symbol.becomes;
+                        getch();
+                    }
+                    else
+                    {
+                        sym = symbol.nul;	/* 不能识别的符号 */
+                    }
+                }
+                else
+                {
+                    if (ch == '<')		/* 检测小于或小于等于符号 */
+                    {
+                        getch();
+                        if (ch == '=')
+                        {
+                            sym = symbol.leq;
+                            getch();
+                        }
+                        else
+                        {
+                            sym = symbol.lss;
+                        }
+                    }
+                    else
+                    {
+                        if (ch == '>')		/* 检测大于或大于等于符号 */
+                        {
+                            getch();
+                            if (ch == '=')
+                            {
+                                sym = symbol.geq;
+                                getch();
+                            }
+                            else
+                            {
+                                sym = symbol.gtr;
+                            }
+                        }
+                        else
+                        {
+                            sym = ssym[ch];		/* 当符号不满足上述条件时，全部按照单字符符号处理 */
+                            if (sym != symbol.period)
+                            {
+                                getch();
+                            }
+
+                        }
+                    }
+                }
+            }
 
         }
 
